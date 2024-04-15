@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'HomePage.dart'; // Importez la page d'accueil ici
+import 'HomePage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Contact extends StatefulWidget {
   const Contact({Key? key}) : super(key: key);
@@ -17,17 +18,49 @@ class _ContactState extends State<Contact> {
   void initState() {
     super.initState();
     _contactController = TextEditingController();
+
+    // Récupérez les préférences partagées
+    SharedPreferences.getInstance().then((prefs) {
+      List<String>? savedContacts = prefs.getStringList('contacts');
+      if (savedContacts != null) {
+        setState(() {
+          Contact.contacts = savedContacts;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _saveContactsToPreferences();
     _contactController.dispose();
     super.dispose();
   }
 
-  void _saveContact(BuildContext context) {
+  void _saveContactsToPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('contacts', Contact.contacts);
+  }
+
+
+  void _saveContact(BuildContext context) async {
     String contactNumber = _contactController.text;
-    Contact.contacts.add(contactNumber);
+
+    // Récupérez les préférences partagées
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Ajoutez le contact à la liste des contacts dans les préférences partagées
+    List<String>? contacts = prefs.getStringList('contacts');
+    if (contacts == null) {
+      contacts = [];
+    }
+    contacts.add(contactNumber);
+    await prefs.setStringList('contacts', contacts);
+
+    // Mise à jour de la liste des contacts statiques après l'ajout
+    setState(() {
+      Contact.contacts = contacts ?? [];
+    });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -37,13 +70,21 @@ class _ContactState extends State<Contact> {
     );
 
     _contactController.clear();
-    setState(() {}); // Actualiser l'affichage des contacts après l'ajout
   }
 
-  void _removeContact(int index) {
-    Contact.contacts.removeAt(index);
-    setState(() {}); // Actualiser l'affichage des contacts après la suppression
+
+  void _removeContact(int index) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? contacts = prefs.getStringList('contacts');
+    if (contacts != null) {
+      contacts.removeAt(index);
+      await prefs.setStringList('contacts', contacts);
+      setState(() {
+        Contact.contacts = contacts; // Mettre à jour la liste des contacts statiques
+      });
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {

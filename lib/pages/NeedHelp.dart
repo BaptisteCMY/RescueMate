@@ -1,3 +1,4 @@
+import 'package:background_sms/background_sms.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:rescuemate/pages/AboutPage.dart';
@@ -51,13 +52,6 @@ class _NeedHelp extends State<NeedHelp> {
     await launch(url);
   }
 
-  void _sendingSMS(String sms, List<String> phoneNumbers) async {
-    String numbers = phoneNumbers.join(';'); // Concaténer les numéros avec des points-virgules
-    String url = 'sms:$numbers?body=$sms';
-    await launch(url);
-  }
-
-
 
   void checkAndRequestPhonePermission() async {
     // Vérifiez l'état actuel de l'autorisation
@@ -77,6 +71,18 @@ class _NeedHelp extends State<NeedHelp> {
       // Vous pouvez afficher un message à l'utilisateur pour l'informer que l'autorisation est nécessaire pour effectuer cette action
     }
   }
+
+
+  void smsFunction({required String message, required List<String> numbers}) async {
+    // Demander l'autorisation d'envoyer des SMS
+    await Permission.sms.request();
+
+    // Itérer sur la liste des numéros et envoyer le message à chaque numéro
+    for (String number in numbers) {
+      SmsStatus res = await BackgroundSms.sendMessage(phoneNumber: number, message: message);
+    }
+  }
+
 
   void checkAndRequestSendSMS() async {
     // Vérifiez l'état actuel de l'autorisation
@@ -517,8 +523,6 @@ class _NeedHelp extends State<NeedHelp> {
     _currentLocation = await _getCurrentLocation();
     print("Latitude: ${_currentLocation?.latitude}, Longitude: ${_currentLocation?.longitude}");
 
-    // Liste des numéros de téléphone enregistrés
-    List<String> phoneNumbers = ['0781913733', '0603012898']; // Mettez vos numéros enregistrés ici
 
     // Vérifier si c'est la victime ou le témoin et ajouter cette information au message
     String role = 'Victime'; // Par défaut, considérez que c'est la victime
@@ -567,6 +571,6 @@ class _NeedHelp extends State<NeedHelp> {
     }
 
     // Envoyer le message à tous les numéros enregistrés
-    _sendingSMS(message, Contact.contacts);
+    smsFunction(message: message, numbers: Contact.contacts);
   }
 }
